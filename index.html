@@ -1,0 +1,2392 @@
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js#gimkit"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>#10 Best Gimkit Modes</title>
+    <script>function toggleSearch() {
+    var searchInput = document.getElementById('searchright');
+    searchInput.classList.toggle('active');
+}
+
+
+$(document).ready(function() {
+    $("#popular").lightSlider({
+        item: 6,
+        loop: true,
+        rtl: false,
+        thumbItem: 9
+    });
+    
+    $("#action").lightSlider({
+        item: 6,
+        loop: true,
+        rtl: false,
+        thumbItem: 9
+    });
+     
+    $("#racing").lightSlider({
+        item: 5,
+        loop: true,
+        rtl: false,
+        thumbItem: 9
+    });
+
+    $("#shooting").lightSlider({
+        item: 5,
+        loop: true,
+        rtl: false,
+        thumbItem: 9
+    });
+});
+
+(function ($, undefined) {
+    'use strict';
+    var defaults = {
+        item: 3,
+        autoWidth: false,
+        slideMove: 1,
+        slideMargin: 10,
+        addClass: '',
+        mode: 'slide',
+        useCSS: true,
+        cssEasing: 'ease', //'cubic-bezier(0.25, 0, 0.25, 1)',
+        easing: 'linear', //'for jquery animation',//
+        speed: 400, //ms'
+        auto: true,
+        pauseOnHover: true,
+        loop: true,
+        slideEndAnimation: true,
+        pause: 2000,
+        keyPress: false,
+        controls: true,
+        prevHtml: '',
+        nextHtml: '',
+        rtl: false,
+        adaptiveHeight: false,
+        vertical: false,
+        verticalHeight: 500,
+        vThumbWidth: 100,
+        thumbItem: 10,
+        pager: true,
+        gallery: false,
+        galleryMargin: 5,
+        thumbMargin: 5,
+        currentPagerPosition: 'middle',
+        enableTouch: true,
+        enableDrag: true,
+        freeMove: true,
+        swipeThreshold: 40,
+        responsive: [],
+        /* jshint ignore:start */
+        onBeforeStart: function ($el) {},
+        onSliderLoad: function ($el) {},
+        onBeforeSlide: function ($el, scene) {},
+        onAfterSlide: function ($el, scene) {},
+        onBeforeNextSlide: function ($el, scene) {},
+        onBeforePrevSlide: function ($el, scene) {}
+        /* jshint ignore:end */
+    };
+    $.fn.lightSlider = function (options) {
+        if (this.length === 0) {
+            return this;
+        }
+
+        if (this.length > 1) {
+            this.each(function () {
+                $(this).lightSlider(options);
+            });
+            return this;
+        }
+
+        var plugin = {},
+            settings = $.extend(true, {}, defaults, options),
+            settingsTemp = {},
+            $el = this;
+        plugin.$el = this;
+
+        if (settings.mode === 'fade') {
+            settings.vertical = false;
+        }
+        var $children = $el.children(),
+            windowW = $(window).width(),
+            breakpoint = null,
+            resposiveObj = null,
+            length = 0,
+            w = 0,
+            on = false,
+            elSize = 0,
+            $slide = '',
+            scene = 0,
+            property = (settings.vertical === true) ? 'height' : 'width',
+            gutter = (settings.vertical === true) ? 'margin-bottom' : 'margin-right',
+            slideValue = 0,
+            pagerWidth = 0,
+            slideWidth = 0,
+            thumbWidth = 0,
+            interval = null,
+            isTouch = ('ontouchstart' in document.documentElement);
+        var refresh = {};
+
+        refresh.chbreakpoint = function () {
+            windowW = $(window).width();
+            if (settings.responsive.length) {
+                var item;
+                if (settings.autoWidth === false) {
+                    item = settings.item;
+                }
+                if (windowW < settings.responsive[0].breakpoint) {
+                    for (var i = 0; i < settings.responsive.length; i++) {
+                        if (windowW < settings.responsive[i].breakpoint) {
+                            breakpoint = settings.responsive[i].breakpoint;
+                            resposiveObj = settings.responsive[i];
+                        }
+                    }
+                }
+                if (typeof resposiveObj !== 'undefined' && resposiveObj !== null) {
+                    for (var j in resposiveObj.settings) {
+                        if (resposiveObj.settings.hasOwnProperty(j)) {
+                            if (typeof settingsTemp[j] === 'undefined' || settingsTemp[j] === null) {
+                                settingsTemp[j] = settings[j];
+                            }
+                            settings[j] = resposiveObj.settings[j];
+                        }
+                    }
+                }
+                if (!$.isEmptyObject(settingsTemp) && windowW > settings.responsive[0].breakpoint) {
+                    for (var k in settingsTemp) {
+                        if (settingsTemp.hasOwnProperty(k)) {
+                            settings[k] = settingsTemp[k];
+                        }
+                    }
+                }
+                if (settings.autoWidth === false) {
+                    if (slideValue > 0 && slideWidth > 0) {
+                        if (item !== settings.item) {
+                            scene = Math.round(slideValue / ((slideWidth + settings.slideMargin) * settings.slideMove));
+                        }
+                    }
+                }
+            }
+        };
+
+        refresh.calSW = function () {
+            if (settings.autoWidth === false) {
+                slideWidth = (elSize - ((settings.item * (settings.slideMargin)) - settings.slideMargin)) / settings.item;
+            }
+        };
+
+        refresh.calWidth = function (cln) {
+            var ln = cln === true ? $slide.find('.lslide').length : $children.length;
+            if (settings.autoWidth === false) {
+                w = ln * (slideWidth + settings.slideMargin);
+            } else {
+                w = 0;
+                for (var i = 0; i < ln; i++) {
+                    w += (parseInt($children.eq(i).width()) + settings.slideMargin);
+                }
+            }
+            return w;
+        };
+        plugin = {
+            doCss: function () {
+                var support = function () {
+                    var transition = ['transition', 'MozTransition', 'WebkitTransition', 'OTransition', 'msTransition', 'KhtmlTransition'];
+                    var root = document.documentElement;
+                    for (var i = 0; i < transition.length; i++) {
+                        if (transition[i] in root.style) {
+                            return true;
+                        }
+                    }
+                };
+                if (settings.useCSS && support()) {
+                    return true;
+                }
+                return false;
+            },
+            keyPress: function () {
+                if (settings.keyPress) {
+                    $(document).on('keyup.lightslider', function (e) {
+                        if (!$(':focus').is('input, textarea')) {
+                            if (e.preventDefault) {
+                                e.preventDefault();
+                            } else {
+                                e.returnValue = false;
+                            }
+                            if (e.keyCode === 37) {
+                                $el.goToPrevSlide();
+                            } else if (e.keyCode === 39) {
+                                $el.goToNextSlide();
+                            }
+                        }
+                    });
+                }
+            },
+            controls: function () {
+                if (settings.controls) {
+                    $el.after('<div class="lSAction"><a class="lSPrev">' + settings.prevHtml + '</a><a class="lSNext">' + settings.nextHtml + '</a></div>');
+                    if (!settings.autoWidth) {
+                        if (length <= settings.item) {
+                            $slide.find('.lSAction').hide();
+                        }
+                    } else {
+                        if (refresh.calWidth(false) < elSize) {
+                            $slide.find('.lSAction').hide();
+                        }
+                    }
+                    $slide.find('.lSAction a').on('click', function (e) {
+                        if (e.preventDefault) {
+                            e.preventDefault();
+                        } else {
+                            e.returnValue = false;
+                        }
+                        if ($(this).attr('class') === 'lSPrev') {
+                            $el.goToPrevSlide();
+                        } else {
+                            $el.goToNextSlide();
+                        }
+                        return false;
+                    });
+                }
+            },
+            initialStyle: function () {
+                var $this = this;
+                if (settings.mode === 'fade') {
+                    settings.autoWidth = false;
+                    settings.slideEndAnimation = false;
+                }
+                if (settings.auto) {
+                    settings.slideEndAnimation = false;
+                }
+                if (settings.autoWidth) {
+                    settings.slideMove = 1;
+                    settings.item = 1;
+                }
+                if (settings.loop) {
+                    settings.slideMove = 1;
+                    settings.freeMove = false;
+                }
+                settings.onBeforeStart.call(this, $el);
+                refresh.chbreakpoint();
+                $el.addClass('lightSlider').wrap('<div class="lSSlideOuter ' + settings.addClass + '"><div class="lSSlideWrapper"></div></div>');
+                $slide = $el.parent('.lSSlideWrapper');
+                if (settings.rtl === true) {
+                    $slide.parent().addClass('lSrtl');
+                }
+                if (settings.vertical) {
+                    $slide.parent().addClass('vertical');
+                    elSize = settings.verticalHeight;
+                    $slide.css('height', elSize + 'px');
+                } else {
+                    elSize = $el.outerWidth();
+                }
+                $children.addClass('lslide');
+                if (settings.loop === true && settings.mode === 'slide') {
+                    refresh.calSW();
+                    refresh.clone = function () {
+                        if (refresh.calWidth(true) > elSize) {
+                            /**/
+                            var tWr = 0,
+                                tI = 0;
+                            for (var k = 0; k < $children.length; k++) {
+                                tWr += (parseInt($el.find('.lslide').eq(k).width()) + settings.slideMargin);
+                                tI++;
+                                if (tWr >= (elSize + settings.slideMargin)) {
+                                    break;
+                                }
+                            }
+                            var tItem = settings.autoWidth === true ? tI : settings.item;
+
+                            /**/
+                            if (tItem < $el.find('.clone.left').length) {
+                                for (var i = 0; i < $el.find('.clone.left').length - tItem; i++) {
+                                    $children.eq(i).remove();
+                                }
+                            }
+                            if (tItem < $el.find('.clone.right').length) {
+                                for (var j = $children.length - 1; j > ($children.length - 1 - $el.find('.clone.right').length); j--) {
+                                    scene--;
+                                    $children.eq(j).remove();
+                                }
+                            }
+                            /**/
+                            for (var n = $el.find('.clone.right').length; n < tItem; n++) {
+                                $el.find('.lslide').eq(n).clone().removeClass('lslide').addClass('clone right').appendTo($el);
+                                scene++;
+                            }
+                            for (var m = $el.find('.lslide').length - $el.find('.clone.left').length; m > ($el.find('.lslide').length - tItem); m--) {
+                                $el.find('.lslide').eq(m - 1).clone().removeClass('lslide').addClass('clone left').prependTo($el);
+                            }
+                            $children = $el.children();
+                        } else {
+                            if ($children.hasClass('clone')) {
+                                $el.find('.clone').remove();
+                                $this.move($el, 0);
+                            }
+                        }
+                    };
+                    refresh.clone();
+                }
+                refresh.sSW = function () {
+                    length = $children.length;
+                    if (settings.rtl === true && settings.vertical === false) {
+                        gutter = 'margin-left';
+                    }
+                    if (settings.autoWidth === false) {
+                        $children.css(property, slideWidth + 'px');
+                    }
+                    $children.css(gutter, settings.slideMargin + 'px');
+                    w = refresh.calWidth(false);
+                    $el.css(property, w + 'px');
+                    if (settings.loop === true && settings.mode === 'slide') {
+                        if (on === false) {
+                            scene = $el.find('.clone.left').length;
+                        }
+                    }
+                };
+                refresh.calL = function () {
+                    $children = $el.children();
+                    length = $children.length;
+                };
+                if (this.doCss()) {
+                    $slide.addClass('usingCss');
+                }
+                refresh.calL();
+                if (settings.mode === 'slide') {
+                    refresh.calSW();
+                    refresh.sSW();
+                    if (settings.loop === true) {
+                        slideValue = $this.slideValue();
+                        this.move($el, slideValue);
+                    }
+                    if (settings.vertical === false) {
+                        this.setHeight($el, false);
+                    }
+
+                } else {
+                    this.setHeight($el, true);
+                    $el.addClass('lSFade');
+                    if (!this.doCss()) {
+                        $children.fadeOut(0);
+                        $children.eq(scene).fadeIn(0);
+                    }
+                }
+                if (settings.loop === true && settings.mode === 'slide') {
+                    $children.eq(scene).addClass('active');
+                } else {
+                    $children.first().addClass('active');
+                }
+            },
+            pager: function () {
+                var $this = this;
+                refresh.createPager = function () {
+                    thumbWidth = (elSize - ((settings.thumbItem * (settings.thumbMargin)) - settings.thumbMargin)) / settings.thumbItem;
+                    var $children = $slide.find('.lslide');
+                    var length = $slide.find('.lslide').length;
+                    var i = 0,
+                        pagers = '',
+                        v = 0;
+                    for (i = 0; i < length; i++) {
+                        if (settings.mode === 'slide') {
+                            // calculate scene * slide value
+                            if (!settings.autoWidth) {
+                                v = i * ((slideWidth + settings.slideMargin) * settings.slideMove);
+                            } else {
+                                v += ((parseInt($children.eq(i).width()) + settings.slideMargin) * settings.slideMove);
+                            }
+                        }
+                        var thumb = $children.eq(i * settings.slideMove).attr('data-thumb');
+                        if (settings.gallery === true) {
+                            pagers += '<li style="width:100%;' + property + ':' + thumbWidth + 'px;' + gutter + ':' + settings.thumbMargin + 'px"><a href="#"><img src="' + thumb + '" /></a></li>';
+                        } else {
+                            pagers += '<li><a href="#">' + (i + 1) + '</a></li>';
+                        }
+                        if (settings.mode === 'slide') {
+                            if ((v) >= w - elSize - settings.slideMargin) {
+                                i = i + 1;
+                                var minPgr = 2;
+                                if (settings.autoWidth) {
+                                    pagers += '<li><a href="#">' + (i + 1) + '</a></li>';
+                                    minPgr = 1;
+                                }
+                                if (i < minPgr) {
+                                    pagers = null;
+                                    $slide.parent().addClass('noPager');
+                                } else {
+                                    $slide.parent().removeClass('noPager');
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    var $cSouter = $slide.parent();
+                    $cSouter.find('.lSPager').html(pagers); 
+                    if (settings.gallery === true) {
+                        if (settings.vertical === true) {
+                            // set Gallery thumbnail width
+                            $cSouter.find('.lSPager').css('width', settings.vThumbWidth + 'px');
+                        }
+                        pagerWidth = (i * (settings.thumbMargin + thumbWidth)) + 0.5;
+                        $cSouter.find('.lSPager').css({
+                            property: pagerWidth + 'px',
+                            'transition-duration': settings.speed + 'ms'
+                        });
+                        if (settings.vertical === true) {
+                            $slide.parent().css('padding-right', (settings.vThumbWidth + settings.galleryMargin) + 'px');
+                        }
+                        $cSouter.find('.lSPager').css(property, pagerWidth + 'px');
+                    }
+                    var $pager = $cSouter.find('.lSPager').find('li');
+                    $pager.first().addClass('active');
+                    $pager.on('click', function () {
+                        if (settings.loop === true && settings.mode === 'slide') {
+                            scene = scene + ($pager.index(this) - $cSouter.find('.lSPager').find('li.active').index());
+                        } else {
+                            scene = $pager.index(this);
+                        }
+                        $el.mode(false);
+                        if (settings.gallery === true) {
+                            $this.slideThumb();
+                        }
+                        return false;
+                    });
+                };
+                if (settings.pager) {
+                    var cl = 'lSpg';
+                    if (settings.gallery) {
+                        cl = 'lSGallery';
+                    }
+                    $slide.after('<ul class="lSPager ' + cl + '"></ul>');
+                    var gMargin = (settings.vertical) ? 'margin-left' : 'margin-top';
+                    $slide.parent().find('.lSPager').css(gMargin, settings.galleryMargin + 'px');
+                    refresh.createPager();
+                }
+
+                setTimeout(function () {
+                    refresh.init();
+                }, 0);
+            },
+            setHeight: function (ob, fade) {
+                var obj = null,
+                    $this = this;
+                if (settings.loop) {
+                    obj = ob.children('.lslide ').first();
+                } else {
+                    obj = ob.children().first();
+                }
+                var setCss = function () {
+                    var tH = obj.outerHeight(),
+                        tP = 0,
+                        tHT = tH;
+                    if (fade) {
+                        tH = 0;
+                        tP = ((tHT) * 100) / elSize;
+                    }
+                    ob.css({
+                        'height': tH + 'px',
+                        'padding-bottom': tP + '%'
+                    });
+                };
+                setCss();
+                if (obj.find('img').length) {
+                    if ( obj.find('img')[0].complete) {
+                        setCss();
+                        if (!interval) {
+                            $this.auto();
+                        }   
+                    }else{
+                        obj.find('img').load(function () {
+                            setTimeout(function () {
+                                setCss();
+                                if (!interval) {
+                                    $this.auto();
+                                }
+                            }, 100);
+                        });
+                    }
+                }else{
+                    if (!interval) {
+                        $this.auto();
+                    }
+                }
+            },
+            active: function (ob, t) {
+                if (this.doCss() && settings.mode === 'fade') {
+                    $slide.addClass('on');
+                }
+                var sc = 0;
+                if (scene * settings.slideMove < length) {
+                    ob.removeClass('active');
+                    if (!this.doCss() && settings.mode === 'fade' && t === false) {
+                        ob.fadeOut(settings.speed);
+                    }
+                    if (t === true) {
+                        sc = scene;
+                    } else {
+                        sc = scene * settings.slideMove;
+                    }
+                    //t === true ? sc = scene : sc = scene * settings.slideMove;
+                    var l, nl;
+                    if (t === true) {
+                        l = ob.length;
+                        nl = l - 1;
+                        if (sc + 1 >= l) {
+                            sc = nl;
+                        }
+                    }
+                    if (settings.loop === true && settings.mode === 'slide') {
+                        //t === true ? sc = scene - $el.find('.clone.left').length : sc = scene * settings.slideMove;
+                        if (t === true) {
+                            sc = scene - $el.find('.clone.left').length;
+                        } else {
+                            sc = scene * settings.slideMove;
+                        }
+                        if (t === true) {
+                            l = ob.length;
+                            nl = l - 1;
+                            if (sc + 1 === l) {
+                                sc = nl;
+                            } else if (sc + 1 > l) {
+                                sc = 0;
+                            }
+                        }
+                    }
+
+                    if (!this.doCss() && settings.mode === 'fade' && t === false) {
+                        ob.eq(sc).fadeIn(settings.speed);
+                    }
+                    ob.eq(sc).addClass('active');
+                } else {
+                    ob.removeClass('active');
+                    ob.eq(ob.length - 1).addClass('active');
+                    if (!this.doCss() && settings.mode === 'fade' && t === false) {
+                        ob.fadeOut(settings.speed);
+                        ob.eq(sc).fadeIn(settings.speed);
+                    }
+                }
+            },
+            move: function (ob, v) {
+                if (settings.rtl === true) {
+                    v = -v;
+                }
+                if (this.doCss()) {
+                    if (settings.vertical === true) {
+                        ob.css({
+                            'transform': 'translate3d(0px, ' + (-v) + 'px, 0px)',
+                            '-webkit-transform': 'translate3d(0px, ' + (-v) + 'px, 0px)'
+                        });
+                    } else {
+                        ob.css({
+                            'transform': 'translate3d(' + (-v) + 'px, 0px, 0px)',
+                            '-webkit-transform': 'translate3d(' + (-v) + 'px, 0px, 0px)',
+                        });
+                    }
+                } else {
+                    if (settings.vertical === true) {
+                        ob.css('position', 'relative').animate({
+                            top: -v + 'px'
+                        }, settings.speed, settings.easing);
+                    } else {
+                        ob.css('position', 'relative').animate({
+                            left: -v + 'px'
+                        }, settings.speed, settings.easing);
+                    }
+                }
+                var $thumb = $slide.parent().find('.lSPager').find('li');
+                this.active($thumb, true);
+            },
+            fade: function () {
+                this.active($children, false);
+                var $thumb = $slide.parent().find('.lSPager').find('li');
+                this.active($thumb, true);
+            },
+            slide: function () {
+                var $this = this;
+                refresh.calSlide = function () {
+                    if (w > elSize) {
+                        slideValue = $this.slideValue();
+                        $this.active($children, false);
+                        if ((slideValue) > w - elSize - settings.slideMargin) {
+                            slideValue = w - elSize - settings.slideMargin;
+                        } else if (slideValue < 0) {
+                            slideValue = 0;
+                        }
+                        $this.move($el, slideValue);
+                        if (settings.loop === true && settings.mode === 'slide') {
+                            if (scene >= (length - ($el.find('.clone.left').length / settings.slideMove))) {
+                                $this.resetSlide($el.find('.clone.left').length);
+                            }
+                            if (scene === 0) {
+                                $this.resetSlide($slide.find('.lslide').length);
+                            }
+                        }
+                    }
+                };
+                refresh.calSlide();
+            },
+            resetSlide: function (s) {
+                var $this = this;
+                $slide.find('.lSAction a').addClass('disabled');
+                setTimeout(function () {
+                    scene = s;
+                    $slide.css('transition-duration', '0ms');
+                    slideValue = $this.slideValue();
+                    $this.active($children, false);
+                    plugin.move($el, slideValue);
+                    setTimeout(function () {
+                        $slide.css('transition-duration', settings.speed + 'ms');
+                        $slide.find('.lSAction a').removeClass('disabled');
+                    }, 50);
+                }, settings.speed + 100);
+            },
+            slideValue: function () {
+                var _sV = 0;
+                if (settings.autoWidth === false) {
+                    _sV = scene * ((slideWidth + settings.slideMargin) * settings.slideMove);
+                } else {
+                    _sV = 0;
+                    for (var i = 0; i < scene; i++) {
+                        _sV += (parseInt($children.eq(i).width()) + settings.slideMargin);
+                    }
+                }
+                return _sV;
+            },
+            slideThumb: function () {
+                var position;
+                switch (settings.currentPagerPosition) {
+                case 'left':
+                    position = 0;
+                    break;
+                case 'middle':
+                    position = (elSize / 2) - (thumbWidth / 2);
+                    break;
+                case 'right':
+                    position = elSize - thumbWidth;
+                }
+                var sc = scene - $el.find('.clone.left').length;
+                var $pager = $slide.parent().find('.lSPager');
+                if (settings.mode === 'slide' && settings.loop === true) {
+                    if (sc >= $pager.children().length) {
+                        sc = 0;
+                    } else if (sc < 0) {
+                        sc = $pager.children().length;
+                    }
+                }
+                var thumbSlide = sc * ((thumbWidth + settings.thumbMargin)) - (position);
+                if ((thumbSlide + elSize) > pagerWidth) {
+                    thumbSlide = pagerWidth - elSize - settings.thumbMargin;
+                }
+                if (thumbSlide < 0) {
+                    thumbSlide = 0;
+                }
+                this.move($pager, thumbSlide);
+            },
+            auto: function () {
+                if (settings.auto) {
+                    clearInterval(interval);
+                    interval = setInterval(function () {
+                        $el.goToNextSlide();
+                    }, settings.pause);
+                }
+            },
+            pauseOnHover: function(){
+                var $this = this;
+                if (settings.auto && settings.pauseOnHover) {
+                    $slide.on('mouseenter', function(){
+                        $(this).addClass('ls-hover');
+                        $el.pause();
+                        settings.auto = true;
+                    });
+                    $slide.on('mouseleave',function(){
+                        $(this).removeClass('ls-hover');
+                        if (!$slide.find('.lightSlider').hasClass('lsGrabbing')) {
+                            $this.auto();
+                        }
+                    });
+                }
+            },
+            touchMove: function (endCoords, startCoords) {
+                $slide.css('transition-duration', '0ms');
+                if (settings.mode === 'slide') {
+                    var distance = endCoords - startCoords;
+                    var swipeVal = slideValue - distance;
+                    if ((swipeVal) >= w - elSize - settings.slideMargin) {
+                        if (settings.freeMove === false) {
+                            swipeVal = w - elSize - settings.slideMargin;
+                        } else {
+                            var swipeValT = w - elSize - settings.slideMargin;
+                            swipeVal = swipeValT + ((swipeVal - swipeValT) / 5);
+
+                        }
+                    } else if (swipeVal < 0) {
+                        if (settings.freeMove === false) {
+                            swipeVal = 0;
+                        } else {
+                            swipeVal = swipeVal / 5;
+                        }
+                    }
+                    this.move($el, swipeVal);
+                }
+            },
+
+            touchEnd: function (distance) {
+                $slide.css('transition-duration', settings.speed + 'ms');
+                if (settings.mode === 'slide') {
+                    var mxVal = false;
+                    var _next = true;
+                    slideValue = slideValue - distance;
+                    if ((slideValue) > w - elSize - settings.slideMargin) {
+                        slideValue = w - elSize - settings.slideMargin;
+                        if (settings.autoWidth === false) {
+                            mxVal = true;
+                        }
+                    } else if (slideValue < 0) {
+                        slideValue = 0;
+                    }
+                    var gC = function (next) {
+                        var ad = 0;
+                        if (!mxVal) {
+                            if (next) {
+                                ad = 1;
+                            }
+                        }
+                        if (!settings.autoWidth) {
+                            var num = slideValue / ((slideWidth + settings.slideMargin) * settings.slideMove);
+                            scene = parseInt(num) + ad;
+                            if (slideValue >= (w - elSize - settings.slideMargin)) {
+                                if (num % 1 !== 0) {
+                                    scene++;
+                                }
+                            }
+                        } else {
+                            var tW = 0;
+                            for (var i = 0; i < $children.length; i++) {
+                                tW += (parseInt($children.eq(i).width()) + settings.slideMargin);
+                                scene = i + ad;
+                                if (tW >= slideValue) {
+                                    break;
+                                }
+                            }
+                        }
+                    };
+                    if (distance >= settings.swipeThreshold) {
+                        gC(false);
+                        _next = false;
+                    } else if (distance <= -settings.swipeThreshold) {
+                        gC(true);
+                        _next = false;
+                    }
+                    $el.mode(_next);
+                    this.slideThumb();
+                } else {
+                    if (distance >= settings.swipeThreshold) {
+                        $el.goToPrevSlide();
+                    } else if (distance <= -settings.swipeThreshold) {
+                        $el.goToNextSlide();
+                    }
+                }
+            },
+
+
+
+            enableDrag: function () {
+                var $this = this;
+                if (!isTouch) {
+                    var startCoords = 0,
+                        endCoords = 0,
+                        isDraging = false;
+                    $slide.find('.lightSlider').addClass('lsGrab');
+                    $slide.on('mousedown', function (e) {
+                        if (w < elSize) {
+                            if (w !== 0) {
+                                return false;
+                            }
+                        }
+                        if ($(e.target).attr('class') !== ('lSPrev') && $(e.target).attr('class') !== ('lSNext')) {
+                            startCoords = (settings.vertical === true) ? e.pageY : e.pageX;
+                            isDraging = true;
+                            if (e.preventDefault) {
+                                e.preventDefault();
+                            } else {
+                                e.returnValue = false;
+                            }
+                            // ** Fix for webkit cursor issue https://code.google.com/p/chromium/issues/detail?id=26723
+                            $slide.scrollLeft += 1;
+                            $slide.scrollLeft -= 1;
+                            // *
+                            $slide.find('.lightSlider').removeClass('lsGrab').addClass('lsGrabbing');
+                            clearInterval(interval);
+                        }
+                    });
+                    $(window).on('mousemove', function (e) {
+                        if (isDraging) {
+                            endCoords = (settings.vertical === true) ? e.pageY : e.pageX;
+                            $this.touchMove(endCoords, startCoords);
+                        }
+                    });
+                    $(window).on('mouseup', function (e) {
+                        if (isDraging) {
+                            $slide.find('.lightSlider').removeClass('lsGrabbing').addClass('lsGrab');
+                            isDraging = false;
+                            endCoords = (settings.vertical === true) ? e.pageY : e.pageX;
+                            var distance = endCoords - startCoords;
+                            if (Math.abs(distance) >= settings.swipeThreshold) {
+                                $(window).on('click.ls', function (e) {
+                                    if (e.preventDefault) {
+                                        e.preventDefault();
+                                    } else {
+                                        e.returnValue = false;
+                                    }
+                                    e.stopImmediatePropagation();
+                                    e.stopPropagation();
+                                    $(window).off('click.ls');
+                                });
+                            }
+
+                            $this.touchEnd(distance);
+
+                        }
+                    });
+                }
+            },
+
+
+
+
+            enableTouch: function () {
+                var $this = this;
+                if (isTouch) {
+                    var startCoords = {},
+                        endCoords = {};
+                    $slide.on('touchstart', function (e) {
+                        endCoords = e.originalEvent.targetTouches[0];
+                        startCoords.pageX = e.originalEvent.targetTouches[0].pageX;
+                        startCoords.pageY = e.originalEvent.targetTouches[0].pageY;
+                        clearInterval(interval);
+                    });
+                    $slide.on('touchmove', function (e) {
+                        if (w < elSize) {
+                            if (w !== 0) {
+                                return false;
+                            }
+                        }
+                        var orig = e.originalEvent;
+                        endCoords = orig.targetTouches[0];
+                        var xMovement = Math.abs(endCoords.pageX - startCoords.pageX);
+                        var yMovement = Math.abs(endCoords.pageY - startCoords.pageY);
+                        if (settings.vertical === true) {
+                            if ((yMovement * 3) > xMovement) {
+                                e.preventDefault();
+                            }
+                            $this.touchMove(endCoords.pageY, startCoords.pageY);
+                        } else {
+                            if ((xMovement * 3) > yMovement) {
+                                e.preventDefault();
+                            }
+                            $this.touchMove(endCoords.pageX, startCoords.pageX);
+                        }
+
+                    });
+                    $slide.on('touchend', function () {
+                        if (w < elSize) {
+                            if (w !== 0) {
+                                return false;
+                            }
+                        }
+                        var distance;
+                        if (settings.vertical === true) {
+                            distance = endCoords.pageY - startCoords.pageY;
+                        } else {
+                            distance = endCoords.pageX - startCoords.pageX;
+                        }
+                        $this.touchEnd(distance);
+                    });
+                }
+            },
+            build: function () {
+                var $this = this;
+                $this.initialStyle();
+                if (this.doCss()) {
+
+                    if (settings.enableTouch === true) {
+                        $this.enableTouch();
+                    }
+                    if (settings.enableDrag === true) {
+                        $this.enableDrag();
+                    }
+                }
+
+                $(window).on('focus', function(){
+                    $this.auto();
+                });
+                
+                $(window).on('blur', function(){
+                    clearInterval(interval);
+                });
+
+                $this.pager();
+                $this.pauseOnHover();
+                $this.controls();
+                $this.keyPress();
+            }
+        };
+        plugin.build();
+        refresh.init = function () {
+            refresh.chbreakpoint();
+            if (settings.vertical === true) {
+                if (settings.item > 1) {
+                    elSize = settings.verticalHeight;
+                } else {
+                    elSize = $children.outerHeight();
+                }
+                $slide.css('height', elSize + 'px');
+            } else {
+                elSize = $slide.outerWidth();
+            }
+            if (settings.loop === true && settings.mode === 'slide') {
+                refresh.clone();
+            }
+            refresh.calL();
+            if (settings.mode === 'slide') {
+                $el.removeClass('lSSlide');
+            }
+            if (settings.mode === 'slide') {
+                refresh.calSW();
+                refresh.sSW();
+            }
+            setTimeout(function () {
+                if (settings.mode === 'slide') {
+                    $el.addClass('lSSlide');
+                }
+            }, 1000);
+            if (settings.pager) {
+                refresh.createPager();
+            }
+            if (settings.adaptiveHeight === true && settings.vertical === false) {
+                $el.css('height', $children.eq(scene).outerHeight(true));
+            }
+            if (settings.adaptiveHeight === false) {
+                if (settings.mode === 'slide') {
+                    if (settings.vertical === false) {
+                        plugin.setHeight($el, false);
+                    }else{
+                        plugin.auto();
+                    }
+                } else {
+                    plugin.setHeight($el, true);
+                }
+            }
+            if (settings.gallery === true) {
+                plugin.slideThumb();
+            }
+            if (settings.mode === 'slide') {
+                plugin.slide();
+            }
+            if (settings.autoWidth === false) {
+                if ($children.length <= settings.item) {
+                    $slide.find('.lSAction').hide();
+                } else {
+                    $slide.find('.lSAction').show();
+                }
+            } else {
+                if ((refresh.calWidth(false) < elSize) && (w !== 0)) {
+                    $slide.find('.lSAction').hide();
+                } else {
+                    $slide.find('.lSAction').show();
+                }
+            }
+        };
+        $el.goToPrevSlide = function () {
+            if (scene > 0) {
+                settings.onBeforePrevSlide.call(this, $el, scene);
+                scene--;
+                $el.mode(false);
+                if (settings.gallery === true) {
+                    plugin.slideThumb();
+                }
+            } else {
+                if (settings.loop === true) {
+                    settings.onBeforePrevSlide.call(this, $el, scene);
+                    if (settings.mode === 'fade') {
+                        var l = (length - 1);
+                        scene = parseInt(l / settings.slideMove);
+                    }
+                    $el.mode(false);
+                    if (settings.gallery === true) {
+                        plugin.slideThumb();
+                    }
+                } else if (settings.slideEndAnimation === true) {
+                    $el.addClass('leftEnd');
+                    setTimeout(function () {
+                        $el.removeClass('leftEnd');
+                    }, 400);
+                }
+            }
+        };
+        $el.goToNextSlide = function () {
+            var nextI = true;
+            if (settings.mode === 'slide') {
+                var _slideValue = plugin.slideValue();
+                nextI = _slideValue < w - elSize - settings.slideMargin;
+            }
+            if (((scene * settings.slideMove) < length - settings.slideMove) && nextI) {
+                settings.onBeforeNextSlide.call(this, $el, scene);
+                scene++;
+                $el.mode(false);
+                if (settings.gallery === true) {
+                    plugin.slideThumb();
+                }
+            } else {
+                if (settings.loop === true) {
+                    settings.onBeforeNextSlide.call(this, $el, scene);
+                    scene = 0;
+                    $el.mode(false);
+                    if (settings.gallery === true) {
+                        plugin.slideThumb();
+                    }
+                } else if (settings.slideEndAnimation === true) {
+                    $el.addClass('rightEnd');
+                    setTimeout(function () {
+                        $el.removeClass('rightEnd');
+                    }, 400);
+                }
+            }
+        };
+        $el.mode = function (_touch) {
+            if (settings.adaptiveHeight === true && settings.vertical === false) {
+                $el.css('height', $children.eq(scene).outerHeight(true));
+            }
+            if (on === false) {
+                if (settings.mode === 'slide') {
+                    if (plugin.doCss()) {
+                        $el.addClass('lSSlide');
+                        if (settings.speed !== '') {
+                            $slide.css('transition-duration', settings.speed + 'ms');
+                        }
+                        if (settings.cssEasing !== '') {
+                            $slide.css('transition-timing-function', settings.cssEasing);
+                        }
+                    }
+                } else {
+                    if (plugin.doCss()) {
+                        if (settings.speed !== '') {
+                            $el.css('transition-duration', settings.speed + 'ms');
+                        }
+                        if (settings.cssEasing !== '') {
+                            $el.css('transition-timing-function', settings.cssEasing);
+                        }
+                    }
+                }
+            }
+            if (!_touch) {
+                settings.onBeforeSlide.call(this, $el, scene);
+            }
+            if (settings.mode === 'slide') {
+                plugin.slide();
+            } else {
+                plugin.fade();
+            }
+            if (!$slide.hasClass('ls-hover')) {
+                plugin.auto();
+            }
+            setTimeout(function () {
+                if (!_touch) {
+                    settings.onAfterSlide.call(this, $el, scene);
+                }
+            }, settings.speed);
+            on = true;
+        };
+        $el.play = function () {
+            $el.goToNextSlide();
+            settings.auto = true;
+            plugin.auto();
+        };
+        $el.pause = function () {
+            settings.auto = false;
+            clearInterval(interval);
+        };
+        $el.refresh = function () {
+            refresh.init();
+        };
+        $el.getCurrentSlideCount = function () {
+            var sc = scene;
+            if (settings.loop) {
+                var ln = $slide.find('.lslide').length,
+                    cl = $el.find('.clone.left').length;
+                if (scene <= cl - 1) {
+                    sc = ln + (scene - cl);
+                } else if (scene >= (ln + cl)) {
+                    sc = scene - ln - cl;
+                } else {
+                    sc = scene - cl;
+                }
+            }
+            return sc + 1;
+        }; 
+        $el.getTotalSlideCount = function () {
+            return $slide.find('.lslide').length;
+        };
+        $el.goToSlide = function (s) {
+            if (settings.loop) {
+                scene = (s + $el.find('.clone.left').length - 1);
+            } else {
+                scene = s;
+            }
+            $el.mode(false);
+            if (settings.gallery === true) {
+                plugin.slideThumb();
+            }
+        };
+        $el.destroy = function () {
+            if ($el.lightSlider) {
+                $el.goToPrevSlide = function(){};
+                $el.goToNextSlide = function(){};
+                $el.mode = function(){};
+                $el.play = function(){};
+                $el.pause = function(){};
+                $el.refresh = function(){};
+                $el.getCurrentSlideCount = function(){};
+                $el.getTotalSlideCount = function(){};
+                $el.goToSlide = function(){}; 
+                $el.lightSlider = null;
+                refresh = {
+                    init : function(){}
+                };
+                $el.parent().parent().find('.lSAction, .lSPager').remove();
+                $el.removeClass('lightSlider lSFade lSSlide lsGrab lsGrabbing leftEnd right').removeAttr('style').unwrap().unwrap();
+                $el.children().removeAttr('style');
+                $children.removeClass('lslide active');
+                $el.find('.clone').remove();
+                $children = null;
+                interval = null;
+                on = false;
+                scene = 0;
+            }
+
+        };
+        setTimeout(function () {
+            settings.onSliderLoad.call(this, $el);
+        }, 10);
+        $(window).on('resize orientationchange', function (e) {
+            setTimeout(function () {
+                if (e.preventDefault) {
+                    e.preventDefault();
+                } else {
+                    e.returnValue = false;
+                }
+                refresh.init();
+            }, 200);
+        });
+        return this;
+    };
+}(jQuery));</script>
+    <link rel="stylesheet" href="styles.css"> <!-- Create a separate CSS file for better organization -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+
+</head>
+
+<body>
+    <nav>
+        <logo><img class="logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAACXBIWXMAAAsTAAALEwEAmpwYAAAHA0lEQVR4nO2dW6iVRRTHf14ytcwy61h2jzTvUvZST100eoqggswoC5REKOvBClJLKy1N6yGyG3nJAiOVCkM081ISRpbWsSwzMcTumYSXjhoT68DmsLdn5rvO9vx/MA8Hzp7vWzNrZtasWWs+EEIIIYQQQgghhBBCCCGEEEIIIYQQQgghhBBCCCGEEEIIIYQQQgghhBBCCCGEEEK0TXoANwLTgKXAF8DPwAHgMHAI+B34BvgAmA2MAs6j/jkfuB141mTbarIeMtkPWFtstrZ5ErgJOJ06pwGYAHxsgh5NWBqBqUAf6oe+puyNKeR2bbYBeBDoRR0xEFgIHEwhfLVyBFgBXEe8DAdW2rtmKbubLRYBg4mYc6zjsxa+WvkIuIx4uBxYU4Dcrm3fAM4lItoB44C/C2iAytIEzAK6lCh7F1vbmwqWfR8w3tq+VE4D3i1Y+JZls625RdMX2FKy7O+ZgV0KlwDbSm6A5vKXrb9FMRz4MwK5XfmuDAPZGSN7IhC+sjij85YCZL85BwM3bXHbyCEUxKXALylfeL9tkZwxtxxYZb6BvSnrbTL/QV6MAv7NYLbaZLuF5dYGjeYPSFOv65N+5MyZwI6E1us68wu42aNDjfqdUXMRMNqcIgcTKoH7fdbck9Cf4WR4B7gTuOAY9Xe0UfyA+U6S7KZ+NP9LLnQwbQ3tjNds1kiqcI8nmBlcR43NUPZxCTrEjfTJwBkJnzkAeD3BDmONKVPmPBr4Ip+YUygLGszHEDrruK1SWiYk6Px5KTq+JW5W+DTw+ZPImAEB0/ERc4PWmubTcBvwT6ASuCk1KQ8n2J/nYYi6ET09QBEPZjj4/mel54OdgXQH+XIF8GtgxzyU4DmPJbDE8/ZO3h2wJDjDOrM9r+9oy9MCr2SQNXhe0+KMwLp3F2GBVyiB70wwIosHfuj5sCkUSz9r+JCOckvTsWgHPBdY5y5zihXJdM93c0Z7KgZ6Pmgt0J7i6WMdENJhz9Soqz3wYmBdO2zbWjQdAwxDN1smZqbnUWVR0181Lrb9b0jHzalykNLJfOshLtgyA1aGetoD7sAsMT5On5eII+pme6ASvFBDCZZ5/NZFLvWmfBZ4vKsbHIno51H5kRROnjziEUIPp16psnR1Ms9drd9sydPblsBH4CNn/ySVj/Go2LksY+KsBGFY86r4LE4AFlf5300ZOniy4nMPGRN5RX0MoonER4PFCIQowaIq7lP391sV/7OxzLP3YzDZQ765SSr2CXG6kjjpaaM1RAkW28hvqQQLza3dnTi5xkM215e5GIDdiJceNmpDlGAZcGKLetzycBLx0tNDLteXwbQW4/cH8dPdQqtDlOB9oDP1RWvnI64vg2nKQ6tKoJvFIoQowQqgK/VDax5R15dtVgGwKdzXpX3UymrgZNqwAuw7DpaASrrayA5RgnXAKbTRJcDHCIy5cbpU8fR1tjU+RAk2AKdS30bgD0kqXutR8VXEiVPM9ebLqObpWxqoBBsj9QE4rs7rVHBuToEWRSSrVJ6UvVpFCWp5+o4eo2yy0RYbkzze3Q2EYMZ6To/14ACaX8Xd29E8gCFKENM5QDOfeby3c+sH09/zMKjMo+BKerWSqvVmFXdvBzsLCFECd9ZwNnEw2POdEx/Y7fQ8USub3nZE29q7vl3F3dseeDlQCbZFkqE73+NdU23XZ3kGgiY6bswwFuD7QHdvSyVoZ/EBIUqwvZVEjyJGf1OKCCgvBnk2xvqcwsDziAZ6vkZadTuLFAqpa6e9Q9F0DHBxu5D+VKz2fJALoy4St679FNhhMz1y6p8OrHNXCdm5TxUZGj7C82FHCsgJqAxWDc1OfiKg/mmBde8ucBkcHRAWfm1WD10VWWLIbwWkSk2q88QQ5/Y+7lLDRgamhqWNWpoYUWrYjICRfyCP7XmS5NBUMekVNNjlSCHPd411fxtNDn2EyNLD+6Xo+KkJ0sNdh92boezjE6aHT0mZHj4vQXr4qjx3ZGkuiFhvo2lIzhdEHLbLHLJmTMoLIu4CLmxlmh9qF0MmvSBiexHnFW35ipjRGVwJ13xFzKqKK2K2ZnBFzJ4icxRjvSTq1gJkH2npcEcjKruzcPiE4rTt2wiEbx5VmaRCe3JDBrNVVqWxpATVaC6K/Kqk9LT+wNcly74khnyFMq+KnR3BVbFzSrgqdq8ZpaVfFdsyOXNByqvhfYsLVxtGPAzzDKFLWw7b1jCWeISafvoFOV0X7+4qup54GZHTdfEHrOMLN/Ri+GDEVjvIiSUNvagPRjSZ7+S+CDOSU30yZkmVT8YcbPHJmDm2n3fBHsf7J2P225b6S2ubadZWzsAWQgghhBBCCCGEEEIIIYQQQgghhBBCCCGEEEIIIYQQQgghhBBCCCGEEEIIIYQQQrQ5/gO1W4Bn8P+mewAAAABJRU5ErkJggg=="></img><b><span class="logo-name">InfinitePlayground<br></span></b></logo>
+        <div class="textbelowlogo">
+                    <div class="header-text">
+                The Best Games, all in one place.
+            </div>
+        </div>
+ <div class="container options">
+    <div class="icon"><i href="javascript:void(0);" onclick="musicwindow()" class="fa-solid fa-music"></i></div>
+    <div class="spacer"></div>
+    <div href="javascript:void(0);" onclick="openTcPopup()" class="icon1"><i class="fa-solid fa-scroll"></i></div>
+    <div class="spacer"></div>
+    <div href="javascript:void(0);" onclick="aboutwindow()"class="icon1"><i class="fas fa-info-circle"></i></div>
+</div>
+    </nav>
+        <script>
+function aboutwindow() {
+  var newWindow = window.open('', '_blank', 'width=500,height=450,top=100,left=100');
+  newWindow.document.write('<style>.sidebar h2,margin: 0;} .sidebar {background-color: rgba(31, 31, 31, 0.6); /* Reduced alpha value for translucency */padding: 10px;display: flex;justify-content: space-between;align-items: center;animation: fadeInSidebar 1s ease forwards;border-radius: 15px; /* Rounded corners */box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow for floating effect */margin-left: 0.3%; /* Adjust based on your preference */margin-right: 0.3%; /* Adjust based on your preference */margin-top: 0.4%;max-width: 100%;}body { color: white; font-weight: 700; font-family: "Roboto", sans-serif; background: linear-gradient(-30deg, blue, #9e0d0d); } </style><title>About InfinitePlayground</title><div class="sidebar">    <div><h2>About InfinitePlayground</h2></div><nav><ul></ul></nav></div><p>Explore a world of unblocked gaming right at your fingertips. InfinitePlayground brings you a curated collection of the latest and most popular unblocked games, providing you with endless entertainment.</p><p>Why choose InfinitePlayground?</p><ul><li>🎮 Wide Variety: Discover a diverse selection of games from various genres.</li><li>🚀 Instant Access: Play games without any restrictions or annoying blocks.</li><li>🌐 Web-Based: No downloads required – simply play directly from your browser.</li><li>👾 Regular Updates: Stay tuned for new additions to our ever-expanding game library.</li><li>🚫 No Ads: Enjoy an ad-free gaming experience for uninterrupted play.</li></ul><p>Please note that some games on this site may not work or may have bugs.</p>');
+}
+
+function musicwindow() {
+  var newWindow = window.open('', '_blank', 'width=800,height=450,top=100,left=100');
+  newWindow.document.write('<html><head><title>InfinitePlayground | Music</title><style>.loading-overlay {display: flex;position: fixed;top: 0;left: 0;width: 100%;height: 100%;background: rgba(0, 0, 0, 0.8);justify-content: center;align-items: center;z-index: 9999;}.loading-text {color: #fff;font-size: 24px;margin-right: 20px;}body { background-color: #333;color: #fff;margin: 0;padding: 0;font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;background: linear-gradient(-30deg, blue, #9e0d0d);background-attachment: fixed;background-size: cover;}.button-container {display: flex;flex-wrap: wrap;justify-content: center;margin-top: 20px;}.music-player {text-align: center;margin: 20px;}.music-player h3 {color: #fff;font-size: 18px;margin-bottom: 10px;}.music-player audio {width: 100%;max-width: 500px;min-width: 300px;}</style></head><body></div><div class="button-container"><div class="music-player"><h3>Classic - MKTO</h3><audio controls><source src="music/MKTO - Classic.mp3" type="audio/mp3">Your browser does not support the audio element.</audio></div><div class="music-player"><h3>Onerepublic - Counting Stars</h3><audio controls><source src="music/OneRepublic - Counting Stars.mp3" type="audio/mp3">Your browser does not support the audio element.</audio></div><div class="music-player"><h3>Easy on Me - Adele</h3><audio controls><source src="music/Adele-Easy On Me.mp3" type="audio/mp3">Your browser does not support the audio element.</audio></div><div class="music-player"><h3>Fight Song - Rachel Platten</h3><audio controls><source src="music/Rachel Platten-Fight Song.mp3" type="audio/mp3">Your browser does not support the audio element.</audio></div><div class="music-player"><h3>Another Love - Tom Odell</h3><audio controls><source src="music/Tom Odell - Another Love (Lyrics).mp3" type="audio/mp3">Your browser does not support the audio element.</audio></div><div class="music-player"><h3>Hot Girl Bummer - Blackbear</h3><audio controls><source src="music/_blackbear - hot girl bummer (Lyrics).mp3" type="audio/mp3">Your browser does not support the audio element.</audio></div></div></body></html>');
+}
+</script>
+        <script>
+        // Close the popup when the close button is clicked
+        document.querySelector('.close-button').addEventListener('click', function() {
+            document.querySelector('.notifpopup').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
+
+    <div class="centered-popup" id="terms-and-conditions-popup">
+        <h2>Terms and Conditions</h2>
+        <p>Please read these Terms and Conditions carefully before using this website.</p>
+<p>By accessing or using this website, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these Terms and Conditions, please refrain from using this website.</p><p>All games, content, and materials on this website are the property of their respective developers or publishers.</p> You may not copy, reproduce, modify, distribute, or transmit any parts of this website or its games without explicit permission from the owner. User Responsibility</p> <p>You are solely responsible for your actions and any consequences that may arise from using this website. The owner of this website is not responsible for any trouble or issues that may occur as a result of accessing or using this website in a school or educational setting.</p>
+        <button class="popup-button" onclick="closeTcPopup()">Close</button>
+    </div>
+
+    <script>
+
+    // Function to open the T&C popup
+    function openTcPopup() {
+        document.getElementById('terms-and-conditions-popup').style.display = 'block';
+    }
+
+    // Function to close the T&C popup and set a cookie
+    function closeTcPopup() {
+        document.getElementById('terms-and-conditions-popup').style.display = 'none';
+
+        // Set a cookie that expires in 5 hours
+        const expirationTime = new Date(Date.now() + 5 * 60 * 60 * 1000); // 5 hours
+        document.cookie = "tcPopupClosed=true; expires=" + expirationTime.toUTCString() + "; path=/";
+    }
+
+    // Function to check the cookie and show Terms and Conditions popup accordingly
+    function checkAndShowPopup() {
+        const cookieValue = getCookie("tcPopupClosed");
+
+        // Check if the cookie is not found or has expired
+        if (cookieValue === "" || new Date(cookieValue) < new Date()) {
+            // Show Terms and Conditions popup after 5 seconds
+            setTimeout(function () {
+                openTcPopup();
+            }, 4000);
+        }
+    }
+
+    // Function to get the value of a cookie by name
+    function getCookie(name) {
+        const cookies = document.cookie.split("; ");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].split("=");
+            if (cookie[0] === name) {
+                return cookie[1];
+            }
+        }
+        return "";
+    }
+</script>
+    
+        <div class="centered-popup" id="eaglercraft1.8disclaimer">
+        <h1>Disclaimer</h1>
+        <p><h3>This version of Minecraft (EaglercraftX 1.8) has not been edited or optimised by me (BIGJ) in any way.</p></h3>
+        <h3><p>If you would like to play a more optimised and faster version of Minecraft online please use ChromeCraft.</p></h3>
+<p><button class="popup-button" onclick="eagler18()">Continue</button></p>
+<p><button class="popup-button" onclick="closeeaglercraftdisclaimer()">Close</button></p>
+
+    </div>
+
+    <center><section>
+        <h2>Popular Games</h2>
+        <div class="carousel-container">
+            <ul id="popular" class="light-slider">
+                
+      <button class="button-27" type="submit" onClick="superhot()">  <img src="imgs/superhot.jpg" alt="This will hopefully be an image soon">
+      <br>
+      </br>
+  <span>Superhot</span></button>   
+  
+        <button class="button-27" type="submit" onClick="myFunction38()">  <img src="imgs/snowrider.png" alt="This will hopefully be an image soon">
+      <br>
+      </br>
+  <span>Snow Rider 3D</span></button>
+              
+  <button class="button-27" type="submit" onclick="subwaysurfers()">  <img src="imgs/subwaysurfers.jpg" alt="This will hopefully be an image soon">
+      <br>
+      </br>
+  <span>Subway Surfers</span></button>
+
+                    <button class="button-27" type="submit" onClick="ropepolice()">  <img src="imgs/amazingstrangeropepolice.jpg" alt="This will hopefully be an image soon">
+      <br>
+      </br>
+  <span>Amazing Rope Police</span></button>
+
+      <button class="button-27" type="submit" onClick="flappyplane()">  <img src="imgs/flappyplane.jpg" alt="This will hopefully be an image soon">
+      <br>
+      </br>
+  <span>Flappy Plane</span></button>
+
+      <button class="button-27" type="submit" onClick="slowroads()">  <img src="imgs/slowroads.jpg" alt="This will hopefully be an image soon">
+      <br>
+      </br>
+  <span>Slow Roads (Fast Mod)</span></button>
+  <li>                  
+            </ul>
+        </div>
+    </section>
+
+
+<br><br><br><br><br><br><br><br>
+
+    <footer>
+        <div class="container">
+            <p>© 2024 InfinitePlayground</p>
+        </div>
+    </footer>
+</body>
+<style>
+.mdi--music-circle {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M16 9V7h-4v5.5c-.42-.31-.93-.5-1.5-.5A2.5 2.5 0 0 0 8 14.5a2.5 2.5 0 0 0 2.5 2.5a2.5 2.5 0 0 0 2.5-2.5V9zm-4-7a10 10 0 0 1 10 10a10 10 0 0 1-10 10A10 10 0 0 1 2 12A10 10 0 0 1 12 2'/%3E%3C/svg%3E");
+  background-color: currentColor;
+  -webkit-mask-image: var(--svg);
+  mask-image: var(--svg);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #141414;
+    color: #fff;
+     background: linear-gradient(-30deg, blue, #9e0d0d);
+}
+
+.popup-button {
+  appearance: none;
+  background-color: transparent;
+  border: 2px solid #1A1A1A;
+  border-radius: 15px;
+  box-sizing: border-box;
+  color: #c2c2c2;
+  cursor: pointer;
+  display: inline-block;
+  font-family: Roobert,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  font-size: 16px;
+  font-weight: 600;
+  line-height: normal;
+  margin: 0;
+  min-height: 60px;
+  min-width: 0;
+  outline: none;
+  padding: 16px 24px;
+  text-align: center;
+  text-decoration: none;
+  transition: all 300ms cubic-bezier(.23, 1, 0.32, 1);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  width: 200px;
+  will-change: transform;
+}
+
+.popup-button:hover {
+  color: #fff;
+  background-color: #1A1A1A;
+  box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
+  transform: translateY(-2px);
+}
+
+.popup-button:active {
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+       .popup-button:disabled {
+  background-color: #8f8f8f;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+    .popup-button img {
+  border-radius: 10px;
+  max-width: 60%;
+  max-height: 60%;
+  width: 100%;
+}
+
+        .centered-popup {
+            display: none; /* Initially hidden */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.2;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            text-align: center;
+            width: 650px;
+        }
+
+        .centered-popup h2 {
+            color: #fff;
+        }
+
+        .centered-popup p {
+            color: #fff;
+        }
+        
+                .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+    
+    .centered {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.4;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            text-align: center;
+        }
+
+        .centered h2 {
+            color: #fff;
+        }
+
+        .centered p {
+            color: #fff;
+        }
+
+        .centered button {
+            background-color: transparent;
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin-right: 1px;
+        }
+
+        .centered button:hover {
+            background-color: #fff;
+            color: #000;
+        }
+        
+        
+
+logo {
+    line-height: 1;
+}
+
+.logo {
+    height: 70px;
+    width: 70px;
+    margin: 20px;
+    margin-right: 5px;
+}
+
+
+.button-27 {
+  appearance: none;
+  background-color: transparent;
+  border: 2px solid #1A1A1A;
+  border-radius: 15px;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-family: Roobert,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  font-size: 18px;
+  font-weight: 600;
+  line-height: normal;
+  margin: 0;
+  min-height: 60px;
+  min-width: 0;
+  outline: none;
+  padding: 16px 24px;
+  text-align: center;
+  text-decoration: none;
+  transition: all 300ms cubic-bezier(.23, 1, 0.32, 1);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  width: 100%;
+  will-change: transform;
+  height: 210px;
+    display: flex;
+  flex-direction: column;
+  align-items: center;
+    position: relative;
+  overflow: hidden;
+}
+
+.button-27 img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 10px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Maintain aspect ratio while covering the entire button */
+  transition: opacity 300ms cubic-bezier(.23, 1, 0.32, 1);
+}
+
+.button-27:hover img {
+  opacity: 0.7;
+}
+
+.button-27 span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  max-width: 100%;
+  width: 100%;
+  opacity: 0;
+}
+
+.button-27:hover span {
+  opacity: 1;
+}
+
+.button-27:hover {
+  background-color: #1A1A1A;
+  opacity: 0.65;
+}
+        .button-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .button-container .button-wrapper {
+      flex: 0 0 20%;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .button-container .button-wrapper button {
+      width: 100%;
+    }
+
+.spacer {
+    width: 20px; /* Adjust the width to set the desired space */
+    height: 1px; /* You can adjust the height if needed */
+}
+
+        .logo-name {
+            display: inline;
+            position: absolute;
+            margin: -75px;
+            margin-left: 92px;
+            display: flex;
+            flex-direction: column; /* Added this line to make it a column layout */
+            font-size: 17px;
+        }
+        
+                .textbelowlogo {
+            display: inline;
+            position: absolute;
+            margin: -74px;
+            margin-left: 92px;
+            display: flex;
+            flex-direction: column; /* Added this line to make it a column layout */
+        }
+
+        /* Added a new class .header-text for styling text below the logo */
+        .header-text {
+            margin-top: 20px; /* Adjust the top margin as needed */
+            font-size: 16px; /* Adjust the font size as needed */
+            font-weight: 500;
+            color: #fff;
+        }
+
+.options {
+    position: absolute;
+    margin-left:85%;
+        display: flex;
+
+}
+
+.container {
+    max-width: 1200px;
+    display: inline;
+    margin-right: 10px;
+
+
+}
+.container.options {
+    display: flex;
+    
+}
+
+.icon {
+    display: flex;
+    margin-right: 10px;
+}
+
+.spacer {
+    width: 10px; /* Adjust the width as needed for space between icons */
+}
+
+.icon i {
+    font-size: 24px;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease-in-out;
+    display: inline-block;
+}
+
+.icon i:hover {
+    opacity: 1;
+}
+header, nav, footer {
+    background-color: #222222;
+}
+
+footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 8%;
+    transition: transform 0.5s ease;
+}
+
+header h1, nav a, footer p {
+    color: #fff;
+    text-decoration: none;
+    margin-left: 10px;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    opacity: 0.9;
+    top: 0;
+    z-index: 101;
+    padding: 0;
+    height: 75px;
+    border-radius: 15px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    margin-left: 0.3%; /* Adjust based on your preference */
+    margin-right: 0.3%; /* Adjust based on your preference */
+    margin-top: 0.4%;
+    transition: transform 0.5s ease;
+}
+
+nav a {
+    margin: 0 15px;
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+
+.icons {
+    display: flex;
+    flex-direction: row; /* Change from column to row */
+    margin-top: 50px;
+}
+
+.icon, .icon1 {
+    display: flex;
+    margin-right: 10px;
+
+}
+
+/* Remove duplicate styles for .icon and .icon1, combine them into one */
+.icon img, .icon1 img {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.icon img:hover, .icon1 img:hover {
+    opacity: 1;
+}
+
+.icon i, .icon1 i {
+    font-size: 24px;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease-in-out;
+        display: inline-block; /* Ensure the icons are displayed inline */
+
+}
+
+.icon i:hover, .icon1 i:hover {
+    opacity: 1;
+}
+
+section {
+    padding: 0 20px 0 20px;
+}
+
+
+.carousel-container {
+    width: calc(100% - 70px);
+    margin: 0;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.light-slider {
+    width: 100%;
+    margin: 0;
+    height: 80px;
+}
+
+.carousel-item {
+    list-style: none;
+}
+
+img {
+    width: 100%;
+    border-radius: 5px;
+    max-width: 100%;
+}
+
+.game-name {
+  top: 50%;
+  left: 36.5%;
+  text-align: center;
+  max-width: 100%;
+  width: 100%;
+  opacity: 0;
+}
+
+.game-name:hover {
+    opacity: 1;
+}
+
+.searchbutton:hover {
+	transition-duration: 0.4s;
+	-moz-transition-duration: 0.4s;
+	-webkit-transition-duration: 0.4s;
+	-o-transition-duration: 0.4s;
+	color: grey;
+}
+
+.mglass {
+	display: inline-block;
+	pointer-events: none;
+	rotate: -45deg;
+}
+
+.search-container {
+    position: absolute;
+    top: 50%;
+    right: 150px; /* Adjust the distance from the right as needed */
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+}
+
+.searchbutton {
+    font-size: 22px;
+    background-color: transparent;
+    color: white;
+    cursor: pointer;
+    margin-right: 5px; /* Add margin to separate button and input */
+}
+
+.search {
+    background-color: #3a3a3a;
+    color: white;
+    outline: none;
+    border: none;
+    padding: 10px; /* Adjust the padding to make the input bigger */
+    height: 100%;
+    transition-duration: 0.4s;
+    opacity: 0;
+    overflow: hidden;
+    margin-right: 10px;
+    width: 0;
+}
+
+.search.active {
+    width: 400px; /* Adjust the width of the input when it's active */
+    opacity: 1;
+}
+
+#game-container {
+    margin-top: 20px;
+    margin-left: 20px;
+    position: relative;
+    width: 800px;
+    height: 500px;
+    overflow: hidden;
+}
+
+#game-iframe {
+    width: 800px;
+    height: 442px;
+    border: none;
+}
+
+#game-image {
+    width: 200px;
+    border-radius: 10px;
+    position: relative;
+    top: 0;
+    left: calc(50% - 100px);
+    z-index: 1;
+}
+
+#options-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 780px;
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+#play-btn {
+    position: relative;
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+#fullscreen-btn, #new-page-btn {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+#play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+/*! lightslider - v1.1.5 - 2015-10-31
+* https://github.com/sachinchoolur/lightslider
+* Copyright (c) 2015 Sachin N; Licensed MIT */
+/*! lightslider - v1.1.3 - 2015-04-14
+* https://github.com/sachinchoolur/lightslider
+* Copyright (c) 2015 Sachin N; Licensed MIT */
+/** /!!! core css Should not edit !!!/**/ 
+
+.lSSlideOuter {
+    overflow: hidden;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none
+}
+.lightSlider:before, .lightSlider:after {
+    content: " ";
+    display: table;
+}
+.lightSlider {
+    overflow: hidden;
+    margin: 0;
+}
+.lSSlideWrapper {
+    max-width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+.lSSlideWrapper > .lightSlider:after {
+    clear: both;
+}
+.lSSlideWrapper .lSSlide {
+    -webkit-transform: translate(0px, 0px);
+    -ms-transform: translate(0px, 0px);
+    transform: translate(0px, 0px);
+    -webkit-transition: all 1s;
+    -webkit-transition-property: -webkit-transform,height;
+    -moz-transition-property: -moz-transform,height;
+    transition-property: transform,height;
+    -webkit-transition-duration: inherit !important;
+    transition-duration: inherit !important;
+    -webkit-transition-timing-function: inherit !important;
+    transition-timing-function: inherit !important;
+}
+.lSSlideWrapper .lSFade {
+    position: relative;
+}
+.lSSlideWrapper .lSFade > * {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    z-index: 9;
+    margin-right: 0;
+    width: 100%;
+}
+.lSSlideWrapper.usingCss .lSFade > * {
+    opacity: 0;
+    -webkit-transition-delay: 0s;
+    transition-delay: 0s;
+    -webkit-transition-duration: inherit !important;
+    transition-duration: inherit !important;
+    -webkit-transition-property: opacity;
+    transition-property: opacity;
+    -webkit-transition-timing-function: inherit !important;
+    transition-timing-function: inherit !important;
+}
+.lSSlideWrapper .lSFade > *.active {
+    z-index: 10;
+}
+.lSSlideWrapper.usingCss .lSFade > *.active {
+    opacity: 1;
+}
+/** /!!! End of core css Should not edit !!!/**/
+
+/* Pager */
+.lSSlideOuter .lSPager.lSpg {
+    margin: 10px 0 0;
+    padding: 0;
+    text-align: center;
+}
+.lSSlideOuter .lSPager.lSpg > li {
+    cursor: pointer;
+    display: inline-block;
+    padding: 0 5px;
+}
+.lSSlideOuter .lSPager.lSpg > li a {
+    background-color: #222222;
+    border-radius: 30px;
+    display: inline-block;
+    height: 8px;
+    overflow: hidden;
+    text-indent: -999em;
+    width: 8px;
+    position: relative;
+    z-index: 99;
+    -webkit-transition: all 0.5s linear 0s;
+    transition: all 0.5s linear 0s;
+}
+.lSSlideOuter .lSPager.lSpg > li:hover a, .lSSlideOuter .lSPager.lSpg > li.active a {
+    background-color: #428bca;
+}
+.lSSlideOuter .media {
+    opacity: 0.8;
+}
+.lSSlideOuter .media.active {
+    opacity: 1;
+}
+/* End of pager */
+
+/** Gallery */
+.lSSlideOuter .lSPager.lSGallery {
+    list-style: none outside none;
+    padding-left: 0;
+    margin: 0;
+    overflow: hidden;
+    transform: translate3d(0px, 0px, 0px);
+    -moz-transform: translate3d(0px, 0px, 0px);
+    -ms-transform: translate3d(0px, 0px, 0px);
+    -webkit-transform: translate3d(0px, 0px, 0px);
+    -o-transform: translate3d(0px, 0px, 0px);
+    -webkit-transition-property: -webkit-transform;
+    -moz-transition-property: -moz-transform;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+.lSSlideOuter .lSPager.lSGallery li {
+    overflow: hidden;
+    -webkit-transition: border-radius 0.12s linear 0s 0.35s linear 0s;
+    transition: border-radius 0.12s linear 0s 0.35s linear 0s;
+}
+.lSSlideOuter .lSPager.lSGallery li.active, .lSSlideOuter .lSPager.lSGallery li:hover {
+    border-radius: 5px;
+}
+.lSSlideOuter .lSPager.lSGallery img {
+    display: block;
+    height: auto;
+    max-width: 100%;
+}
+.lSSlideOuter .lSPager.lSGallery:before, .lSSlideOuter .lSPager.lSGallery:after {
+    content: " ";
+    display: table;
+}
+.lSSlideOuter .lSPager.lSGallery:after {
+    clear: both;
+}
+/* End of Gallery*/
+
+/* slider actions */
+.lSAction > a {
+    width: 32px;
+    display: block;
+    top: 50%;
+    height: 32px;
+    background-image: url('/images/arrow.png');
+    cursor: pointer;
+    position: absolute;
+    z-index: 99;
+    margin-top: -16px;
+    opacity: 0.5;
+    -webkit-transition: opacity 0.35s linear 0s;
+    transition: opacity 0.35s linear 0s;
+}
+.lSAction > a:hover {
+    opacity: 1;
+}
+.lSAction > .lSPrev {
+    background-position: 0 0;
+    left: 10px;
+}
+.lSAction > .lSNext {
+    background-position: -32px 0;
+    right: 10px;
+}
+.lSAction > a.disabled {
+    pointer-events: none;
+}
+.cS-hidden {
+    height: 1px;
+    opacity: 0;
+    filter: alpha(opacity=0);
+    overflow: hidden;
+}
+
+
+/* vertical */
+.lSSlideOuter.vertical {
+    position: relative;
+}
+.lSSlideOuter.vertical.noPager {
+    padding-right: 0px !important;
+}
+.lSSlideOuter.vertical .lSGallery {
+    position: absolute !important;
+    right: 0;
+    top: 0;
+}
+.lSSlideOuter.vertical .lightSlider > * {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* vertical controlls */
+.lSSlideOuter.vertical .lSAction > a {
+    left: 50%;
+    margin-left: -14px;
+    margin-top: 0;
+}
+.lSSlideOuter.vertical .lSAction > .lSNext {
+    background-position: 31px -31px;
+    bottom: 10px;
+    top: auto;
+}
+.lSSlideOuter.vertical .lSAction > .lSPrev {
+    background-position: 0 -31px;
+    bottom: auto;
+    top: 10px;
+}
+/* vertical */
+
+
+/* Rtl */
+.lSSlideOuter.lSrtl {
+    direction: rtl;
+}
+.lSSlideOuter .lightSlider, .lSSlideOuter .lSPager {
+    padding-left: 0;
+    list-style: none outside none;
+}
+.lSSlideOuter.lSrtl .lightSlider, .lSSlideOuter.lSrtl .lSPager {
+    padding-right: 0;
+}
+.lSSlideOuter .lightSlider > *,  .lSSlideOuter .lSGallery li {
+    float: left;
+}
+.lSSlideOuter.lSrtl .lightSlider > *,  .lSSlideOuter.lSrtl .lSGallery li {
+    float: right !important;
+}
+/* Rtl */
+
+@-webkit-keyframes rightEnd {
+    0% {
+        left: 0;
+    }
+
+    50% {
+        left: -15px;
+    }
+
+    100% {
+        left: 0;
+    }
+}
+@keyframes rightEnd {
+    0% {
+        left: 0;
+    }
+
+    50% {
+        left: -15px;
+    }
+
+    100% {
+        left: 0;
+    }
+}
+@-webkit-keyframes topEnd {
+    0% {
+        top: 0;
+    }
+
+    50% {
+        top: -15px;
+    }
+
+    100% {
+        top: 0;
+    }
+}
+@keyframes topEnd {
+    0% {
+        top: 0;
+    }
+
+    50% {
+        top: -15px;
+    }
+
+    100% {
+        top: 0;
+    }
+}
+@-webkit-keyframes leftEnd {
+    0% {
+        left: 0;
+    }
+
+    50% {
+        left: 15px;
+    }
+
+    100% {
+        left: 0;
+    }
+}
+@keyframes leftEnd {
+    0% {
+        left: 0;
+    }
+
+    50% {
+        left: 15px;
+    }
+
+    100% {
+        left: 0;
+    }
+}
+@-webkit-keyframes bottomEnd {
+    0% {
+        bottom: 0;
+    }
+
+    50% {
+        bottom: -15px;
+    }
+
+    100% {
+        bottom: 0;
+    }
+}
+@keyframes bottomEnd {
+    0% {
+        bottom: 0;
+    }
+
+    50% {
+        bottom: -15px;
+    }
+
+    100% {
+        bottom: 0;
+    }
+}
+.lSSlideOuter .rightEnd {
+    -webkit-animation: rightEnd 0.3s;
+    animation: rightEnd 0.3s;
+    position: relative;
+}
+.lSSlideOuter .leftEnd {
+    -webkit-animation: leftEnd 0.3s;
+    animation: leftEnd 0.3s;
+    position: relative;
+}
+.lSSlideOuter.vertical .rightEnd {
+    -webkit-animation: topEnd 0.3s;
+    animation: topEnd 0.3s;
+    position: relative;
+}
+.lSSlideOuter.vertical .leftEnd {
+    -webkit-animation: bottomEnd 0.3s;
+    animation: bottomEnd 0.3s;
+    position: relative;
+}
+.lSSlideOuter.lSrtl .rightEnd {
+    -webkit-animation: leftEnd 0.3s;
+    animation: leftEnd 0.3s;
+    position: relative;
+}
+.lSSlideOuter.lSrtl .leftEnd {
+    -webkit-animation: rightEnd 0.3s;
+    animation: rightEnd 0.3s;
+    position: relative;
+}
+/*/  GRab cursor */
+.lightSlider.lsGrab > * {
+  cursor: -webkit-grab;
+  cursor: -moz-grab;
+  cursor: -o-grab;
+  cursor: -ms-grab;
+  cursor: grab;
+}
+.lightSlider.lsGrabbing > * {
+  cursor: move;
+  cursor: -webkit-grabbing;
+  cursor: -moz-grabbing;
+  cursor: -o-grabbing;
+  cursor: -ms-grabbing;
+  cursor: grabbing;
+}
+</style>
+<script>
+const control = {
+    myFunction2: "gms/slither.html",
+    oneversusone: "gms/1v1.lol/index.htm",
+    myFunction4: "gms/mc.html",
+    myFunction5: "gms/csgo-clicker/index.html",
+    myFunction6: "gms/flappy-bird/index.html",
+    myFunction7: "gms/just-one-boss/index.html",
+    myFunction8: "gms/chrome-dino/index.html",
+    myFunction9: "gms/cuttherope/index.html",
+    myFunction10: "gms/slope/index.html",
+    myFunction11: "gms/monkeymart.html",
+    myFunction12: "gms/doodle/index.html",
+    myFunction13: "gms/fps.io.html",
+    myFunction14: "gms/doge/index.html",
+    myFunction15: "gms/hextris/index.html",
+    myFunction16: "gms/text.html",
+    myFunction17: "gms/jsrace/index.html",
+    myFunction18: "gms/crossy.html",
+    myFunction19: "gms/tictacto/index.html",
+    myFunction20: "gms/2048/index.html",
+    myFunction21: "gms/ex.html",
+    myFunction22: "gms/wbwwb/index.html",
+    motox3m: "gms/motox3m.html",
+    myFunction24: "gms/pixelshooter.html",
+    myFunction26: "gms/bitlife/index.html",
+    myFunction27: "gms/whackboss.html",
+    myFunction29: "gms/eggycar.html",
+    myFunction30: "gms/impossiblequiz.html",
+    myFunction31: "gms/fbwg.html",
+    myFunction34: "gms/reactle.html",
+    myFunction35: "gms/astray/index.html",
+    myFunction36: "gms/gba/index.html",
+    myFunction37: "gms/gettingoverit.html",
+    myFunction38: "gms/snowrider/index.html",
+    myFunction40: "gms/tower/index.html",
+    myFunction41: "gms/hangman/index.html",
+    myFunction42: "gms/deepestsword.html",
+    myFunction43: "gms/EaglercraftX1.8.html",
+    hexgl: "gms/hexgl/index.html",
+    subwaysurfers: "gms/subwaysurfers.html",
+    amongus: "gms/amongus.html",
+   ropepolice: "gms/ropepolice.html",
+  pizzeria: "gms/papaspizzeria/index.html",
+  rocketleague: "gms/2drocketleague/index.html",
+  fnaf: "gms/fnaf/index.html",
+  basketrandom: "gms/basketrandom/index.html",
+  flappyplane: "gms/flappyplane/index.html",
+  skibiditoilet: "gms/skibiditoilet/index.html",
+  paperio: "gms/paperio/index.html",
+  russiancardriver: "gms/russiancardriver.html",
+  slope2: "gms/slope2/index.html",
+  rooftopsnipers2: "gms/rooftopsnipers2/index.html",
+  burgeria: "gms/papasburgeria/index.html",
+  freezeria: "gms/papasfreezeria/index.html",
+  dash: "gms/geometrydash/index.html",
+  holeio: "gms/holeio/index.html",
+  terraria: "gms/terraria.html",
+  hillracing: "gms/hillracing.html",
+  soccer: "gms/soccerrandom/index.html",
+  portal: "gms/portalflash/index.html",
+  boxing: "gms/boxingrandom/index.html",
+  scrapmetal: "gms/scrapmetal.html",
+  superhot: "gms/superhot/index.html",
+  ducklife4: "gms/ducklife4.html",
+  slowroads: "gms/fastroads/index.html",
+};
+
+// Dynamically create functions based on the control object
+for (const funcName in control) {
+    if (control.hasOwnProperty(funcName)) {
+        window[funcName] = function() {
+            navigateTo(control[funcName]);
+        };
+    }
+}
+
+// Function to navigate to the specified URL
+function navigateTo(url) {
+    window.location.href = url;
+}
+        // JavaScript for scrolling effect
+        let prevScrollPos = window.pageYOffset;
+
+        window.onscroll = function () {
+            let currentScrollPos = window.pageYOffset;
+
+            if (prevScrollPos > currentScrollPos) {
+                document.querySelector('nav').style.transform = 'translateY(0)';
+            } else {
+                document.querySelector('nav').style.transform = 'translateY(-100%)';
+            }
+
+
+            if (prevScrollPos > currentScrollPos) {
+                document.querySelector('footer').style.transform = 'translateY(0)';
+            } else {
+                document.querySelector('footer').style.transform = 'translateY(100%)';
+            }
+            prevScrollPos = currentScrollPos;
+        };
+        
+</script>
+</html>
